@@ -1,3 +1,4 @@
+'''
 ########################################################################
 # Amogh Tolay
 # Thursday, 27th December 2012
@@ -14,9 +15,8 @@
 #
 #
 # TODO:
-# 1. Ensure clean text is extracted (beautiful soup doesn't work too
-#	 well to get the text, and is bulky for a simple task. Just write 
-#	 a simple parser to do this job (using maybe regex)
+# 1. Ensure clean text is extracted (beautiful soup and then nltk used).
+# 	 If required use html2text.
 # 2. Output the files for clustering
 #
 # Bugs:
@@ -26,74 +26,57 @@
 #
 #
 ########################################################################
-
+'''
 from readability.readability import Document
 import urllib
 from bs4 import BeautifulSoup
 import os.path
 from xml.dom.minidom import Document as XMLDoc
+import nltk
 
 # IMPORTANT: CHANGE VARIABLES HERE
 # Change input and output file names here and give url
 ########################################################################
 inputFileName = 'rawInput.html'
 outputFileName = 'readableOutput.html'
-url = 'http://stackoverflow.com/questions/10486027/removing-html-image-tags-and-everything-in-between-from-a-string'
+url = 'http://lifehacker.com/'
 XMLFileName = 'xmlFileToCluster.xml'
 ########################################################################
 
-########################################################################
-# This function fetches HTML from URL and then saves this to the input
-# file given by inputFileName (contains raw data)
-########################################################################
+'''
+This function fetches HTML from URL and then saves this to the input
+file given by inputFileName (contains raw data)
+'''
 def fetchURLandStore():
 	fpInFetch = open(inputFileName, 'w')
-	fpOut = open(outputFileName, 'w')
 	fpInFetch.write(urllib.urlopen(url).read())
 	fpInFetch.close()
 
-########################################################################
-# This function opens the file containing HTML Code, then strips it
-# by running readability. After this, beuatiful soup (or later a simple
-# regex based parser) reads it and extracts title and text separately.
-# This funtion ultimately gives a list containing plain text 
-# [heading, data] and returns it
-########################################################################
-# TODO HERE:
-# 1. Make sure returned data is clean (not like beautiful soup, hanging
-#    tags and stuff). Use regex based parser to extract pure text if 
-#    required
-# 2. Make sure no images and stuff here.
-# 3. Because of incomplete HTML tags, there is a mess in the XML file
-########################################################################
+'''
+This function opens the file containing HTML Code, then strips it
+by running readability. After this, beuatiful soup (followed by nltk)
+reads it and extracts title and text separately.
+This funtion ultimately gives a list containing plain text 
+[heading, data] and returns it
+'''
 def extractReadableText():
 	fpIn = open( inputFileName, 'r')
-	# Now running beautiful soup
-	##########################################################
+	fpOut = open(outputFileName, 'w')
+
 	html = fpIn.read()
 	readableArticle = Document(html).summary()
 	readableTitle = Document(html).short_title()
+	
 	soup = BeautifulSoup(readableArticle)
-	completeText = [readableTitle, soup.get_text()]
-	# completeText = readableTitle + "\n\n" + soup.get_text()
-	# fpOut.write(completeText.encode('ascii', 'ignore'))
+	completeText = [ readableTitle, nltk.clean_html( ''.join(soup.findAll(text=True)) ) ]
+	
 	return completeText
 
-# TODO:
-########################################################################
-# Call this function as an alternative to beautiful soup.
-# This should clean the HTML and give me plain text only, devoid of any
-# HTML tags or images or such stuff
-########################################################################
-# def extractTextFromHTML ( html ):
-	
-
-
-########################################################################
-# Call this function if you need to create the XML File. 
-# This will be called only once for any user, as it happens only for
-# the first bookmarked link
-########################################################################
+'''
+Call this function if you need to create the XML File. 
+This will be called only once for any user, as it happens only for
+the first bookmarked link
+'''
 def createXML ( completeText, url ):
 	# Create the minidom document
 	doc = XMLDoc()
@@ -112,21 +95,21 @@ def createXML ( completeText, url ):
 	title = doc.createElement("title")
 	mainElemDoc.appendChild(title)
 	# Give the <title> elemenet some text
-	titleText = doc.createTextNode( completeText[0] )
+	titleText = doc.createTextNode( completeText[0].encode('ascii', 'ignore') )
 	title.appendChild(titleText)
 
 	# Create a <url> element
-	url = doc.createElement("url")
-	mainElemDoc.appendChild(url)
+	urlField = doc.createElement("url")
+	mainElemDoc.appendChild(urlField)
 	# Give the <url> elemenet some text
-	urlText = doc.createTextNode( str(url) )
-	url.appendChild(urlText)
+	urlText = doc.createTextNode( url )
+	urlField.appendChild(urlText)
 
 	# Create a <snippet> element
 	snippet = doc.createElement("snippet")
 	mainElemDoc.appendChild(snippet)
 	# Give the <snippet> elemenet some text
-	snippetText = doc.createTextNode( completeText[1] )
+	snippetText = doc.createTextNode( completeText[1].encode('ascii', 'ignore') )
 	snippet.appendChild(snippetText)
 
 	# Print our newly created XML
@@ -135,7 +118,7 @@ def createXML ( completeText, url ):
 	fp.write(entireXMLFile)
 
 ########################################################################
-# Call this function if you XML File already exists.
+# Call this function if your XML File already exists.
 # It parses the XML file, sees the autoID of the document, and appends
 # this document to the XML file appropriately.
 # This function is always called except for 1st bookmark
@@ -146,9 +129,11 @@ def createXML ( completeText, url ):
 def main():
 	fetchURLandStore()
 	completeText = extractReadableText()
+	print completeText
 	if os.path.isfile(XMLFileName):
 		appendXML ( completeText, url )
 	else:
 		createXML ( completeText, url )
+		
 		
 main()

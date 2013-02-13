@@ -1,2 +1,4 @@
 2013-01-05 13:05:59,778 [INFO ] [dcs] Processing direct results feed with lingo
 2013-01-05 13:06:12,825 [INFO ] [dcs] Processing direct results feed with lingo
+2013-01-07 11:05:53,167 [WARN ] [org.eclipse.jetty.util.log] 6 threads could not be stopped
+2013-01-07 11:05:53,678 [INFO ] [dcs] DCS stopped.
